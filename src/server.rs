@@ -1,26 +1,28 @@
-use std::net::UdpSocket;
+use std::net::{UdpSocket, SocketAddr};
 use std::error::Error;
 use std::time::Instant;
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let server_ip = "0.0.0.0:12345"; // Cambia esto a la IP de la computadora B
-    let socket = UdpSocket::bind(server_ip)?;
+    let server_ip = "IP_DEL_SERVIDOR:12345"; // Cambia esto a la IP del servidor
+    let server_addr: SocketAddr = server_ip.parse()?;
+    let socket = UdpSocket::bind("0.0.0.0:0")?;
+    let message = "Hello, World!"; // El mensaje que quieres enviar
 
-    println!("Server listening on {}", server_ip);
-
-    let mut buf = [0; 1024];
-    let mut start_time: Option<Instant> = None;
+    let mut packet_number = 0;
 
     loop {
-        let (_, client_addr) = socket.recv_from(&mut buf)?;
-        if start_time.is_none() {
-            start_time = Some(Instant::now());
-        } else {
-            let end_time = Instant::now();
-            let latency = end_time.duration_since(start_time.unwrap()).as_micros();
-            println!("Latency: {} microseconds from client {}", latency, client_addr);
-            start_time = None;
-        }
+        let start_time = Instant::now();
+        let packet = format!("{} {}", message, packet_number);
+        socket.send_to(packet.as_bytes(), &server_addr)?;
+        
+        let mut buf = [0; 1024];
+        socket.recv_from(&mut buf)?;
+        
+        let end_time = Instant::now();
+        let latency = end_time.duration_since(start_time).as_micros();
+        println!("Packet {} - Latency: {} microseconds", packet_number, latency);
+        
+        packet_number += 1;
     }
-}
 
+}
